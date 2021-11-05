@@ -28,7 +28,7 @@ interface Effects {}
 interface Computed {
   renderOption: (item: any, additionalProps?: AdditionalProps) => React.ReactNode
   renderValue: (item: any, additionalProps?: AdditionalProps) => number | string
-  selectOptions?: JSX.Element[]
+  options?: JSX.Element[]
 }
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -47,7 +47,7 @@ const Select = withState<State, Props, Effects, Computed, ParentState, ParentEff
       renderOption: (_, { optionRenderer }) => iteratee(optionRenderer),
       // @ts-ignore
       renderValue: (_, { valueRenderer }) => iteratee(valueRenderer),
-      selectOptions: (state, { additionalProps, options, optionRenderer, valueRenderer }) =>
+      options: (state, { additionalProps, options, optionRenderer, valueRenderer }) =>
         options?.map(item => {
           const label =
             optionRenderer === undefined
@@ -78,7 +78,7 @@ const Select = withState<State, Props, Effects, Computed, ParentState, ParentEff
             </em>
           </MenuItem>
         )}
-        {state.selectOptions}
+        {state.options}
       </SelectMaterialUi>
     </FormControl>
   )

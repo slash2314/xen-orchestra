@@ -11,7 +11,7 @@ import Select from '../../components/Select'
 interface ParentState {}
 
 interface State {
-  selectValue: unknown
+  value: unknown
 }
 
 interface Props {}
@@ -53,11 +53,11 @@ const Code = styled(SyntaxHighlighter).attrs(() => ({
 const App = withState<State, Props, Effects, Computed, ParentState, ParentEffects>(
   {
     initialState: () => ({
-      selectValue: '',
+      value: '',
     }),
     effects: {
       onChangeSelect: function (e) {
-        this.state.selectValue = e.target.value
+        this.state.value = e.target.value
       },
       sayHello: () => alert('hello'),
     },
@@ -92,7 +92,7 @@ const App = withState<State, Props, Effects, Computed, ParentState, ParentEffect
               { name: 'Bar', value: 1 },
               { name: 'Foo', value: 2 },
             ]}
-            value={state.selectValue}
+            value={state.value}
             valueRenderer='value'
           />
         </Render>

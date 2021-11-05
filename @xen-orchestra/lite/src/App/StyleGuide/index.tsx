@@ -104,7 +104,7 @@ const App = withState<State, Props, Effects, Computed, ParentState, ParentEffect
     { name: 'Bar', value: 1 },
     { name: 'Foo', value: 2 },
   ]}
-  value={state.selectValue}
+  value={state.value}
   valueRenderer='value'
 />`}
         </Code>

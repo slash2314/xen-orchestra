@@ -1,7 +1,7 @@
 import React from 'react'
+import Tooltip from '@mui/material/Tooltip'
 import TreeView from '@mui/lab/TreeView'
 import TreeItem, { useTreeItem } from '@mui/lab/TreeItem'
-import { Tooltip } from '@material-ui/core'
 import { withState } from 'reaclette'
 
 import Link from './Link'
@@ -94,7 +94,11 @@ const renderItem = ({ children, id, label, to, tooltip }: ItemType) => {
 }
 
 const Tree = withState<State, Props, Effects, Computed, ParentState, ParentEffects>({}, ({ collection }) => (
-  <TreeView defaultExpanded={[collection[0].id]} defaultCollapseIcon={<Icon icon='chevron-up' />} defaultExpandIcon={<Icon icon='chevron-down' />}>
+  <TreeView
+    defaultExpanded={[collection[0].id]}
+    defaultCollapseIcon={<Icon icon='chevron-up' />}
+    defaultExpandIcon={<Icon icon='chevron-down' />}
+  >
     {collection.map(renderItem)}
   </TreeView>
 ))

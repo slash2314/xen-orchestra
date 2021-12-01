@@ -13,6 +13,7 @@
 
 - [Delta Backup Restoration] Fix assertion error [Forum #5257](https://xcp-ng.org/forum/topic/5257/problems-building-from-source/16)
 - [Delta Backup Restoration] `TypeError: this disposable has already been disposed` [Forum #5257](https://xcp-ng.org/forum/topic/5257/problems-building-from-source/20)
+- [Delta Backup Restoration] `VDI_IO_ERROR(Device I/O errors)`
 
 ### Packages to release
 

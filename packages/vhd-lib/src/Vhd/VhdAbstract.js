@@ -14,7 +14,7 @@ import { isVhdAlias, resolveAlias } from '../_resolveAlias'
 
 export class VhdAbstract {
   #header
-  footer
+  #footer
 
   get bitmapSize() {
     return sectorsToBytes(this.sectorsOfBitmap)
@@ -39,6 +39,13 @@ export class VhdAbstract {
 
   set header(header) {
     this.#header = header
+  }
+
+  set footer(footer) {
+    this.#footer = footer
+  }
+  get footer() {
+    return this.#footer
   }
 
   /**

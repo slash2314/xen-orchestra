@@ -1,4 +1,10 @@
-import { computeBatSize, computeSectorOfBitmap, computeSectorsPerBlock, sectorsToBytes } from './_utils'
+import {
+  computeBatSize,
+  computeSectorOfBitmap,
+  computeSectorsPerBlock,
+  sectorsRoundUpNoZero,
+  sectorsToBytes,
+} from './_utils'
 import { PLATFORMS, SECTOR_SIZE, PARENT_LOCATOR_ENTRIES, FOOTER_SIZE, HEADER_SIZE, BLOCK_UNUSED } from '../_constants'
 import assert from 'assert'
 import path from 'path'
@@ -220,7 +226,7 @@ export class VhdAbstract {
     await handler.writeFile(aliasPath, relativePathToTarget)
   }
 
-  stream() {
+  async stream() {
     const { footer, batSize } = this
     const { ...header } = this.header // copy since we don't ant to modifiy the current header
     const rawFooter = fuFooter.pack(footer)
@@ -244,11 +250,25 @@ export class VhdAbstract {
     checksumStruct(rawHeader, fuHeader)
 
     assert.strictEqual(offset % SECTOR_SIZE, 0)
-
     const bat = Buffer.allocUnsafe(batSize)
     let offsetSector = offset / SECTOR_SIZE
     const blockSizeInSectors = this.fullBlockSize / SECTOR_SIZE
     let fileSize = offsetSector * SECTOR_SIZE + FOOTER_SIZE /* the footer at the end */
+    for (let i = 0; i < PARENT_LOCATOR_ENTRIES; i++) {
+      if (header.parentLocatorEntry[i].platformDataSpace > 0) {
+        // align parent locator to sector
+        const parentLocator = await this.readParentLocator(i)
+        const space = sectorsToBytes(sectorsRoundUpNoZero(parentLocator.data.length))
+        header.parentLocatorEntry[i].platformDataLength = parentLocator.data.length
+        header.parentLocatorEntry[i].platformDataOffset = offsetSector * SECTOR_SIZE
+        header.parentLocatorEntry[i].platformDataSpace = space
+        fileSize += space
+        offsetSector += space / SECTOR_SIZE
+      }
+    }
+
+    header.tableOffset = HEADER_SIZE + FOOTER_SIZE
+
     // compute BAT , blocks starts after parent locator entries
     for (let i = 0; i < header.maxTableEntries; i++) {
       if (this.containsBlock(i)) {
@@ -266,25 +286,34 @@ export class VhdAbstract {
       yield rawHeader
       yield bat
 
+      let size = rawFooter.length + rawHeader.length + bat.length
       // yield parent locator entries
       for (let i = 0; i < PARENT_LOCATOR_ENTRIES; i++) {
-        if (header.parentLocatorEntry[i].platformDataSpace > 0) {
+        if (header.parentLocatorEntry[i].platformDataLength > 0) {
           const parentLocator = await self.readParentLocator(i)
-          // @ todo pad to platformDataSpace
-          yield parentLocator.data
+          // @ todo pad to platformDataSpacerawHeader
+          // align parent locator to sector
+          const buffer = Buffer.alloc(sectorsToBytes(sectorsRoundUpNoZero(parentLocator.data.length)), 0)
+          parentLocator.data.copy(buffer)
+          size += buffer.length
+          yield buffer
         }
       }
-
       // yield all blocks
       // since contains() can be costly for synthetic vhd, use the computed bat
       for (let i = 0; i < header.maxTableEntries; i++) {
         if (bat.readUInt32BE(i * 4) !== BLOCK_UNUSED) {
           const block = await self.readBlock(i)
+          size += block.buffer.length
           yield block.buffer
         }
       }
-      // yield footer again
+      // some empty bytes ate the end
+      yield Buffer.alloc(fileSize - size - 512, 0)
+      size += fileSize - size - 512
+      // the foter again
       yield rawFooter
+      size += rawFooter.length
     }
 
     const stream = asyncIteratorToStream(iterator())

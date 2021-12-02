@@ -15,6 +15,7 @@
 - [Delta Backup Restoration] `TypeError: this disposable has already been disposed` [Forum #5257](https://xcp-ng.org/forum/topic/5257/problems-building-from-source/20)
 - [Delta Backup Restoration] `VDI_IO_ERROR(Device I/O errors)`
 - [Backups] Fix: `Error: Chaining alias is forbidden xo-vm-backups/..alias.vhd to xo-vm-backups/....alias.vhd` when backuping a file to s3 [Forum #5225](https://xcp-ng.org/forum/topic/5256/s3-backup-try-it)
+- [Delta Backup Restoration] Fix error `ENOENT: no such file '/xo-vm-backups/../parentLocatorEntryN' with vhd having empty parent locator
 
 ### Packages to release
 

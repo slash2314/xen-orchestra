@@ -103,6 +103,10 @@ set.params = {
     type: 'boolean',
     optional: true,
   },
+  fallBackAddresses: {
+    type: 'string',
+    optional: true
+  }
 }
 
 set.resolve = {

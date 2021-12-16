@@ -40,6 +40,10 @@ add.params = {
     optional: true,
     type: 'string',
   },
+  fallbackAddresses: {
+    type: ['string', 'null'],
+    optional: true,
+  },
 }
 
 // -------------------------------------------------------------------
@@ -111,6 +115,10 @@ set.params = {
   httpProxy: {
     optional: true,
     type: ['string', 'null'],
+  },
+  fallbackAddresses: {
+    type: ['string', 'null'],
+    optional: true,
   },
 }
 

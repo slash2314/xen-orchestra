@@ -122,7 +122,7 @@ export default class {
 
   async updateXenServer(
     id,
-    { allowUnauthorized, enabled, error, host, label, password, readOnly, username, httpProxy }
+    { allowUnauthorized, enabled, error, host, label, password, readOnly, username, httpProxy, fallbackAddresses }
   ) {
     const server = await this._getXenServer(id)
     const xapi = this._xapis[id]
@@ -164,6 +164,9 @@ export default class {
     if (httpProxy !== undefined) {
       // if value is null, pass undefined to the model , so it will delete this optionnal property from the Server object
       server.set('httpProxy', httpProxy === null ? undefined : httpProxy)
+    }
+    if (fallbackAddresses !== undefined) {
+      server.set('fallBackAddresses', fallbackAddresses === null ? undefined : fallbackAddresses)
     }
     await this._servers.update(server)
   }
@@ -294,13 +297,13 @@ export default class {
     }
 
     const { config } = this._app
-
     const xapi = (this._xapis[server.id] = new Xapi({
       allowUnauthorized: server.allowUnauthorized,
       readOnly: server.readOnly,
 
       ...config.get('xapiOptions'),
       httpProxy: server.httpProxy,
+      fallBackAddresses: server.fallBackAddresses?.split(';'),
       guessVhdSizeOnImport: config.get('guessVhdSizeOnImport'),
 
       auth: {
@@ -417,6 +420,14 @@ export default class {
       xapi.watchEvents()
 
       this.updateXenServer(id, { error: null })::ignoreErrors()
+
+      const self = this
+      // when the data are loaded, update the fall back adresses of all the hosts of this pool
+      xapi.once('eventFetchedSuccess', async function eventFetchedSuccessListener() {
+        const hosts = await this.getAllRecords('host')
+        const hostAddresses = hosts.map(({ address }) => address).join(';')
+        await self.updateXenServer(server.id, { fallbackAddresses: hostAddresses })
+      })
 
       xapi.once('eventFetchingError', function eventFetchingErrorListener() {
         const timeout = setTimeout(() => {

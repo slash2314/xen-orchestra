@@ -113,7 +113,7 @@ export class Xapi extends EventEmitter {
       delete url.username
       delete url.password
     }
-    this.fallBackAddresses = opts.fallBackAddresses ?? []
+    this._fallBackAddresses = opts.fallBackAddresses ?? []
     this._allowUnauthorized = opts.allowUnauthorized
     this._httpProxy = opts.httpProxy
     this._setUrl(url)
@@ -1011,11 +1011,11 @@ export class Xapi extends EventEmitter {
   async _findCurrentMaster() {
     debug('%s: will try to find a new master', this._humanId)
     const hosts = await this.getAllRecords('host')
-    const hostAddresses = this.fallBackAddresses.concat(hosts.map(({ address }) => address))
+    const hostAddresses = this._fallBackAddresses.concat(hosts.map(({ address }) => address))
 
     // there can be a master only if there is more than 1 host
     if (hostAddresses.length < 2) {
-      return Promise.resolve()
+      return
     }
     // if we were already connected
     for (const hostAdress of hostAddresses) {

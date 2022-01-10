@@ -166,7 +166,7 @@ export default class {
       server.set('httpProxy', httpProxy === null ? undefined : httpProxy)
     }
     if (fallbackAddresses !== undefined) {
-      server.set('fallBackAddresses', fallbackAddresses === null ? undefined : fallbackAddresses)
+      server.set('fallBackAddresses', JSON.stringify(fallbackAddresses))
     }
     await this._servers.update(server)
   }
@@ -303,7 +303,7 @@ export default class {
 
       ...config.get('xapiOptions'),
       httpProxy: server.httpProxy,
-      fallBackAddresses: server.fallBackAddresses?.split(';'),
+      fallBackAddresses: server.fallBackAddresses !== undefined ? JSON.parse(server.fallBackAddresses) : undefined,
       guessVhdSizeOnImport: config.get('guessVhdSizeOnImport'),
 
       auth: {
@@ -421,12 +421,12 @@ export default class {
 
       this.updateXenServer(id, { error: null })::ignoreErrors()
 
-      const self = this
+      const xo = this
       // when the data are loaded, update the fall back adresses of all the hosts of this pool
       xapi.once('eventFetchedSuccess', async function eventFetchedSuccessListener() {
         const hosts = await this.getAllRecords('host')
         const hostAddresses = hosts.map(({ address }) => address).join(';')
-        await self.updateXenServer(server.id, { fallbackAddresses: hostAddresses })
+        await xo.updateXenServer(server.id, { fallbackAddresses: hostAddresses })
       })
 
       xapi.once('eventFetchingError', function eventFetchingErrorListener() {

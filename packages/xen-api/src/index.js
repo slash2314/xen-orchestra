@@ -4,6 +4,7 @@ import kindOf from 'kindof'
 import ms from 'ms'
 import httpRequest from 'http-request-plus'
 import { coalesceCalls } from '@vates/coalesce-calls'
+import { synchronized } from 'decorator-synchronized'
 import { Collection } from 'xo-collection'
 import { EventEmitter } from 'events'
 import { map, noop, omit } from 'lodash'
@@ -653,6 +654,85 @@ export class Xapi extends EventEmitter {
   // Private
   // ===========================================================================
 
+  @synchronized()
+  async _updateUrlFromFallbackAdresses(method, args, startTime) {
+    debug('%s: will try to find a new master', this._humanId)
+    const hostAddresses = this._fallBackAddresses
+
+    // there can be a master only if there is more than 1 host
+    if (hostAddresses.length < 2) {
+      return false
+    }
+
+    // another call to _updateUrlFromFallbackAdresses has already connected us to the right host
+    try {
+      await this._transport('session.get_auth_user_name', [])
+      debug('%s: host was already ok', this._humanId)
+      // host is ok, nothing to do here
+      return true
+    } catch (error) {
+      if (!['EHOSTUNREACH','HOST_IS_SLAVE', 'ENOTFOUND','MESSAGE_PARAMETER_COUNT_MISMATCH'].includes(error.code)) {
+        throw this._augmentCallError(error, method, args, startTime)
+      }
+    }
+
+    for (const hostAdress of hostAddresses) {
+      // we already tested the current master
+      if (hostAdress === this._url.hostname) {
+        debug(`%s: don't recheck currrent host`, this._humanId)
+        continue
+      }
+      // since this method is @syncrhonized , there can be only on call at once
+      this._setUrl({ ...this._url, hostname: hostAdress })
+
+      try {
+        // will not succeed without sessionId, but I only want to know if this host is entitled to answer (he's the master)
+        await this._transport('session.get_auth_user_name', [])
+        // success
+        return true
+      } catch (error) {
+        // this host is also down, try the next one
+        if (error.code === 'EHOSTUNREACH' || error.code ==='ENOTFOUND') {
+          debug(`%s: slave %s is alsoa unreachable`, this._humanId, hostAdress)
+          continue
+        }
+
+        if (error.code === 'HOST_IS_SLAVE') {
+          debug('%s: slave %s told us the master is %s', this._humanId, hostAdress, error.params[0])
+          this._setUrl({ ...this._url, hostname: hostAdress })
+          return true // we found the master no need to check for the other slave
+        }
+
+        if (error.code === 'MESSAGE_PARAMETER_COUNT_MISMATCH') {
+          debug('%s: found new master %s master', this._humanId, hostAdress)
+          // lucky : we found the master with the first host answering
+          return true // we found the master no need to check for the other slave
+        }
+        // any other error should be reported
+        throw this._augmentCallError(error, method, args, startTime)
+      }
+    }
+    return false
+  }
+
+  _augmentCallError(error, method, args, startTime) {
+    // do not log the session ID
+    //
+    // TODO: should log at the session level to avoid logging sensitive
+    // values?
+    const params = args[0] === this._sessionId ? args.slice(1) : args
+
+    error.call = {
+      method,
+      params:
+        // it pass server's credentials as param
+        method === 'session.login_with_password' ? '* obfuscated *' : replaceSensitiveValues(params, '* obfuscated *'),
+    }
+
+    debug('%s: %s(...) [%s] =!> %s', this._humanId, method, ms(Date.now() - startTime), error)
+    return error
+  }
+
   async _call(method, args, timeout = this._callTimeout(method, args)) {
     const startTime = Date.now()
     try {
@@ -660,24 +740,14 @@ export class Xapi extends EventEmitter {
       debug('%s: %s(...) [%s] ==> %s', this._humanId, method, ms(Date.now() - startTime), kindOf(result))
       return result
     } catch (error) {
-      // do not log the session ID
-      //
-      // TODO: should log at the session level to avoid logging sensitive
-      // values?
-      const params = args[0] === this._sessionId ? args.slice(1) : args
-
-      error.call = {
-        method,
-        params:
-          // it pass server's credentials as param
-          method === 'session.login_with_password'
-            ? '* obfuscated *'
-            : replaceSensitiveValues(params, '* obfuscated *'),
+      if (this._fallBackAddresses?.length > 1 && ['EHOSTUNREACH','HOST_IS_SLAVE', 'ENOTFOUND'].includes(error.code)) {
+        const updatedHostUrl = await this._updateUrlFromFallbackAdresses(method, args, startTime)
+        if (updatedHostUrl) {
+          // try again
+          return this._call(method, args, timeout)
+        }
       }
-
-      debug('%s: %s(...) [%s] =!> %s', this._humanId, method, ms(Date.now() - startTime), error)
-
-      throw error
+      throw this._augmentCallError(error, method, args, startTime)
     }
   }
 
@@ -754,13 +824,9 @@ export class Xapi extends EventEmitter {
   //    unnecessary renewal
   _sessionOpenRetryOptions = {
     tries: 2,
-    when: [{ code: 'HOST_IS_SLAVE' }, { code: 'EHOSTUNREACH' }],
+    when: [{ code: 'HOST_IS_SLAVE' }],
     onRetry: async error => {
-      if (error.code === 'HOST_IS_SLAVE') {
-        this._setUrl({ ...this._url, hostname: error.params[0] })
-      } else {
-        await this._findCurrentMaster()
-      }
+      this._setUrl({ ...this._url, hostname: error.params[0] })
     },
   }
   _sessionOpen = coalesceCalls(this._sessionOpen)
@@ -1008,54 +1074,6 @@ export class Xapi extends EventEmitter {
       delete taskWatchers[ref]
     }
   }
-  async _findCurrentMaster() {
-    debug('%s: will try to find a new master', this._humanId)
-    const hosts = await this.getAllRecords('host')
-    const hostAddresses = this._fallBackAddresses.concat(hosts.map(({ address }) => address))
-
-    // there can be a master only if there is more than 1 host
-    if (hostAddresses.length < 2) {
-      return
-    }
-    // if we were already connected
-    for (const hostAdress of hostAddresses) {
-      // not current master send him a simple query and
-      if (hostAdress !== this.url.hostname) {
-        continue
-      }
-      // @todo handle _reverseHostIpAddresses
-      const url = { ...this.url, hostname: hostAdress }
-      // instantiate a transport to this url
-      const transport = autoTransport({
-        secureOptions: {
-          minVersion: 'TLSv1',
-          rejectUnauthorized: !this._allowUnauthorized,
-        },
-        url,
-        httpProxy: this._httpProxy,
-      })
-
-      try {
-        // will not succeed without sessionId, but I only want to know if this host is entitled to answer (he's the master)
-        await transport('session.get_auth_user_name', [])
-      } catch (error) {
-        if (error.code === 'SESSION_INVALID') {
-          debug('%s: found new master %s master', this._humanId, hostAdress)
-          // lucky : we found the master with the first host answering
-          this._setUrl({ ...this._url, hostname: hostAdress })
-          break // we found the master no need to check for the other slave
-        }
-        if (error.code === 'HOST_IS_SLAVE') {
-          debug('%s: slave %s told us the master is %s', this._humanId, hostAdress, error.params[0])
-          this._setUrl({ ...this._url, hostname: error.params[0] })
-          break // we found the master no need to check for the other slave
-        }
-        // any other error should be reported
-        throw error
-      }
-    }
-  }
-
   // read-only call, automatically retry in case of connection issues
   _roCall(method, args) {
     return pRetry(() => this._sessionCall(method, args), this._roCallRetryOptions)

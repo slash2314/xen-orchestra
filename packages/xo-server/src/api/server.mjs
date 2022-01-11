@@ -40,10 +40,6 @@ add.params = {
     optional: true,
     type: 'string',
   },
-  fallbackAddresses: {
-    type: ['string', 'null'],
-    optional: true,
-  },
 }
 
 // -------------------------------------------------------------------

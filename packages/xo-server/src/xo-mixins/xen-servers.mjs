@@ -166,7 +166,7 @@ export default class {
       server.set('httpProxy', httpProxy === null ? undefined : httpProxy)
     }
     if (fallbackAddresses !== undefined) {
-      server.set('fallBackAddresses', JSON.stringify(fallbackAddresses))
+      server.set('fallBackAddresses', fallbackAddresses === null ? null : JSON.stringify(fallbackAddresses))
     }
     await this._servers.update(server)
   }
@@ -289,6 +289,14 @@ export default class {
     })
   }
 
+  async updateFallBackAdresses(xapi) {
+    const hosts = await xapi.getAllRecords('host')
+    const fallbackAddresses = hosts.map(({ address }) => address)
+    for (const host of hosts) {
+      await this.updateXenServer(host.id, { fallbackAddresses })
+    }
+  }
+
   async connectXenServer(id) {
     const server = await this.getXenServer(id)
 
@@ -297,13 +305,17 @@ export default class {
     }
 
     const { config } = this._app
+    let fallBackAddresses
+    try {
+      fallBackAddresses = JSON.parse(server.fallBackAddresses)
+    } catch (e) {}
     const xapi = (this._xapis[server.id] = new Xapi({
       allowUnauthorized: server.allowUnauthorized,
       readOnly: server.readOnly,
 
       ...config.get('xapiOptions'),
       httpProxy: server.httpProxy,
-      fallBackAddresses: server.fallBackAddresses !== undefined ? JSON.parse(server.fallBackAddresses) : undefined,
+      fallBackAddresses,
       guessVhdSizeOnImport: config.get('guessVhdSizeOnImport'),
 
       auth: {
@@ -328,6 +340,8 @@ export default class {
       if (serverIdsByPool[poolId] !== undefined) {
         throw new PoolAlreadyConnected(poolId, serverIdsByPool[poolId], server.id)
       }
+
+      this.updateFallBackAdresses(xapi)
 
       serverIdsByPool[poolId] = server.id
 

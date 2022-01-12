@@ -671,7 +671,7 @@ export class Xapi extends EventEmitter {
       // host is ok, nothing to do here
       return true
     } catch (error) {
-      if (!['EHOSTUNREACH','HOST_IS_SLAVE', 'ENOTFOUND','MESSAGE_PARAMETER_COUNT_MISMATCH'].includes(error.code)) {
+      if (!['EHOSTUNREACH', 'HOST_IS_SLAVE', 'ENOTFOUND', 'MESSAGE_PARAMETER_COUNT_MISMATCH'].includes(error.code)) {
         throw this._augmentCallError(error, method, args, startTime)
       }
     }
@@ -692,7 +692,7 @@ export class Xapi extends EventEmitter {
         return true
       } catch (error) {
         // this host is also down, try the next one
-        if (error.code === 'EHOSTUNREACH' || error.code ==='ENOTFOUND') {
+        if (error.code === 'EHOSTUNREACH' || error.code === 'ENOTFOUND') {
           debug(`%s: slave %s is alsoa unreachable`, this._humanId, hostAdress)
           continue
         }
@@ -740,7 +740,7 @@ export class Xapi extends EventEmitter {
       debug('%s: %s(...) [%s] ==> %s', this._humanId, method, ms(Date.now() - startTime), kindOf(result))
       return result
     } catch (error) {
-      if (this._fallBackAddresses?.length > 1 && ['EHOSTUNREACH','HOST_IS_SLAVE', 'ENOTFOUND'].includes(error.code)) {
+      if (this._fallBackAddresses?.length > 1 && ['EHOSTUNREACH', 'HOST_IS_SLAVE', 'ENOTFOUND'].includes(error.code)) {
         const updatedHostUrl = await this._updateUrlFromFallbackAdresses(method, args, startTime)
         if (updatedHostUrl) {
           // try again

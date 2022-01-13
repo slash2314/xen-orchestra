@@ -11,12 +11,8 @@ import Icon from '../components/Icon'
 interface ParentState {}
 
 interface State {
-  _expandedNodes?: Array<string>
-  selectedNodes?: Array<string>
-}
-
-interface Computed {
   expandedNodes?: Array<string>
+  selectedNodes?: Array<string>
 }
 
 export interface ItemType {
@@ -127,53 +123,46 @@ const renderItem = ({ children, id, label, to, tooltip }: ItemType, defaultSelec
 
 const Tree = withState<State, Props, Effects, Computed, ParentState, ParentEffects>(
   {
-    initialState: ({ defaultSelectedNodes }) => ({
-      selectedNodes: defaultSelectedNodes === undefined ? [] : defaultSelectedNodes,
-      _expandedNodes: undefined,
-    }),
+    initialState: ({ collection, defaultSelectedNodes }) => {
+      if (defaultSelectedNodes === undefined) {
+        return {
+          expandedNodes: [collection[0].id],
+          selectedNodes: [],
+        }
+      }
+
+      // expandedNodes should contain all nodes up to the defaultSelectedNodes.
+      let expandedNodes: Array<string> = []
+      const tempExpandedNodes: Set<string> = new Set()
+      const addExpandedNode = (collection: Array<ItemType> | undefined) => {
+        if (collection === undefined) {
+          return
+        }
+
+        for (const node of collection) {
+          const children = node.children
+          if (children === undefined) {
+            if (defaultSelectedNodes.includes(node.id)) {
+              expandedNodes = expandedNodes.concat(Array.from(tempExpandedNodes))
+            }
+          } else {
+            tempExpandedNodes.add(node.id)
+            addExpandedNode(node.children)
+            tempExpandedNodes.delete(node.id)
+          }
+        }
+      }
+
+      addExpandedNode(collection)
+
+      return { expandedNodes, selectedNodes: defaultSelectedNodes }
+    },
     effects: {
       setExpandedNodeIds: function (event, nodeIds) {
-        this.state._expandedNodes = nodeIds
+        this.state.expandedNodes = nodeIds
       },
       setSelectedNodeIds: function (event, nodeIds) {
         this.state.selectedNodes = nodeIds
-      },
-    },
-    computed: {
-      expandedNodes: ({ _expandedNodes }, { collection, defaultSelectedNodes }) => {
-        if (defaultSelectedNodes === undefined) {
-          return _expandedNodes ?? [collection[0].id]
-        }
-
-        let expandedNodes: Array<string> = _expandedNodes ?? []
-        const tempExpandedNodes: Set<string> = new Set()
-
-        const addExpandedNode = (collection: Array<ItemType> | undefined) => {
-          if (collection === undefined) {
-            return
-          }
-
-          let isExpandedNode = false
-          for (const node of collection) {
-            const children = node.children
-            if (children === undefined) {
-              if (defaultSelectedNodes.includes(node.id)) {
-                expandedNodes = expandedNodes.concat(Array.from(tempExpandedNodes))
-                isExpandedNode = true
-              }
-            } else {
-              tempExpandedNodes.add(node.id)
-              addExpandedNode(node.children)
-              if (!isExpandedNode) {
-                tempExpandedNodes.delete(node.id)
-              }
-            }
-          }
-        }
-
-        addExpandedNode(collection)
-
-        return expandedNodes
       },
     },
   },

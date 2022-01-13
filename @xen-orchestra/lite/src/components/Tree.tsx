@@ -1,5 +1,5 @@
 import classNames from 'classnames'
-import React from 'react'
+import React, { useEffect } from 'react'
 import Tooltip from '@mui/material/Tooltip'
 import TreeView from '@mui/lab/TreeView'
 import TreeItem, { useTreeItem, TreeItemContentProps } from '@mui/lab/TreeItem'
@@ -78,10 +78,11 @@ const CustomContent = React.forwardRef(function CustomContent(props: CustomConte
   const { classes, className, defaultSelectedNodes, label, expansionIcon, nodeId, to } = props
   const { handleExpansion, handleSelection, selected } = useTreeItem(nodeId)
 
-  // FIX: only for first load
-  if (selected && defaultSelectedNodes?.includes(nodeId)) {
-    ref?.current?.scrollIntoView()
-  }
+  useEffect(() => {
+    if (selected && defaultSelectedNodes?.includes(nodeId)) {
+      ref?.current?.scrollIntoView()
+    }
+  }, [])
 
   const history = useHistory()
 

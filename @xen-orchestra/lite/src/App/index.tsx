@@ -152,7 +152,7 @@ const mdTheme = createTheme({
       main: '#17a2b8',
     },
     primary: {
-      main: '#007bff',
+      main: '#0085FF',
     },
     secondary: {
       main: '#6c757d',
@@ -162,6 +162,23 @@ const mdTheme = createTheme({
     },
     warning: {
       main: '#ffc107',
+    },
+  },
+  components: {
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          background: '#FFFFFF',
+          color: '#E8E8E8',
+          fontFamily: 'inter',
+          fontStyle: 'medium',
+          fontSize: '1.25em',
+          textAlign: 'center',
+          '&.Mui-selected': {
+            color: '#0085FF',
+          },
+        },
+      },
     },
   },
 })
@@ -304,6 +321,9 @@ const App = withState<State, Props, Effects, Computed, ParentState, ParentEffect
                   )}
                 </Route>
                 <Route exact path='/styleguide'>
+                  <StyleGuide />
+                </Route>
+                <Route exact path='/styleguide/foo'>
                   <StyleGuide />
                 </Route>
                 <Route exact path='/pool'>

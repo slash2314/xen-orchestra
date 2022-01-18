@@ -6,6 +6,7 @@ import { Switch, Route } from 'react-router-dom'
 
 import TabConsole from './TabConsole'
 import TreeView from './TreeView'
+import Pool from './Pool'
 
 const Container = styled.div`
   display: flex;
@@ -58,7 +59,7 @@ const Infrastructure = withState<State, Props, Effects, Computed, ParentState, P
       <MainPanel>
         <Switch>
           <Route exact path='/infrastructure'>
-            Select a VM
+            <Pool />
           </Route>
           <Route
             path='/infrastructure/vms/:id/console'

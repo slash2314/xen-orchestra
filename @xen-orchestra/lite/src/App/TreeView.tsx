@@ -102,6 +102,7 @@ const TreeView = withState<State, Props, Effects, Computed, ParentState, ParentE
                 <Icon icon='cloud' /> {pool.name_label}
               </span>
             ),
+            to: `/infrastructure/pools/${pool.$id}/dashboard`,
           })
         })
 

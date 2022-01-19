@@ -152,7 +152,7 @@ const mdTheme = createTheme({
       main: '#17a2b8',
     },
     primary: {
-      main: '#0085FF',
+      main: '#007bff',
     },
     secondary: {
       main: '#6c757d',

@@ -51,12 +51,12 @@ const PoolInfo = withState<State, Props, Effects, Computed, ParentState, ParentE
         <Tabs
           list={[
             {
-              id: '1',
-              label: 'DASHBORAD',
+              pathname: '/infrastructure/pool/dashboard',
+              label: 'DASHBOARD',
               component: <Dashboard />,
             },
             {
-              id: '2',
+              pathname: '/infrastructure/pool/system',
               label: 'SYSTEM',
             },
           ]}

@@ -58,7 +58,10 @@ const Infrastructure = withState<State, Props, Effects, Computed, ParentState, P
       </LeftPanel>
       <MainPanel>
         <Switch>
-          <Route exact path='/infrastructure'>
+          <Route exact path='/infrastructure/pool/dashboard'>
+            <Pool />
+          </Route>
+          <Route exact path='/infrastructure/pool/system'>
             <Pool />
           </Route>
           <Route

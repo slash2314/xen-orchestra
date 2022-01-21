@@ -17,6 +17,7 @@ export default class {
       useDefaults: true,
     }).addVocabulary(['$type', 'enumNames'])
     this._plugins = { __proto__: null }
+    this._app = app
 
     this._pluginsMetadata = new PluginsMetadata({
       connection: app._redis,
@@ -46,6 +47,7 @@ export default class {
   }
 
   async registerPlugin(name, instance, configurationSchema, configurationPresets, description, testSchema, version) {
+    this._app.checkFeatureAuthorization(name.toUpperCase().replace('-', '.'))
     const id = name
     const plugin = (this._plugins[id] = {
       configurationPresets,

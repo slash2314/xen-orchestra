@@ -17,6 +17,11 @@ const AUTHORIZATIONS = {
     FULL: 2,
     METADATA: 3,
     S3: 2
+  },
+  PLUGIN: {
+    BACKUP: {
+      REPORTS: 3
+    }
   }
 }
 

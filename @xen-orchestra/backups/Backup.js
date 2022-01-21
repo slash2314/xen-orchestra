@@ -23,7 +23,8 @@ const getAdaptersByRemote = adapters => {
 const runTask = (...args) => Task.run(...args).catch(noop) // errors are handled by logs
 
 exports.Backup = class Backup {
-  constructor({ config, getAdapter, getConnectedRecord, job, schedule }) {
+  constructor({ checkFeatureAuthorization, config, getAdapter, getConnectedRecord, job, schedule }) {
+    this._checkFeatureAuthorization = checkFeatureAuthorization
     this._config = config
     this._getRecord = getConnectedRecord
     this._job = job
@@ -54,6 +55,7 @@ exports.Backup = class Backup {
   }
 
   async _runMetadataBackup() {
+    this._checkFeatureAuthorization("BACKUP.METADATA")
     const schedule = this._schedule
     const job = this._job
     const remoteIds = extractIdsFromSimplePattern(job.remotes)
@@ -181,7 +183,9 @@ exports.Backup = class Backup {
 
   async _runVmBackup() {
     const job = this._job
-
+    if(job.mode === 'full'){
+      this._checkFeatureAuthorization("BACKUP.FULL")
+    }
     // FIXME: proper SimpleIdPattern handling
     const getSnapshotNameLabel = this._getSnapshotNameLabel
     const schedule = this._schedule

@@ -411,7 +411,9 @@ export default class Backups {
   @decorateWith(Disposable.factory)
   *getAdapter(remote) {
     const app = this._app
-    return new RemoteAdapter(yield app.remotes.getHandler(remote), {
+    const handler = yield app.remotes.getHandler(remote)
+    app.checkFeatureAuthorization("BACKUP.S3")
+    return new RemoteAdapter(handler, {
       debounceResource: app.debounceResource.bind(app),
       dirMode: app.config.get('backups.dirMode'),
       vhdDirectoryCompression: app.config.get('backups.vhdDirectoryCompression'),

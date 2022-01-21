@@ -16,13 +16,7 @@ const AUTHORIZATIONS = {
   BACKUP: {
     FULL: 2,
     METADATA: 3,
-    REPORT: 2,
     S3: 2
-  },
-  PLUGIN: {
-    BACKUP: {
-      REPORTS: 3
-    }
   }
 }
 

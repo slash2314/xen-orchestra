@@ -1,4 +1,5 @@
 import React from 'react'
+import styled from 'styled-components'
 import { withState } from 'reaclette'
 import { Switch, Route } from 'react-router-dom'
 import { Map } from 'immutable'
@@ -45,7 +46,7 @@ const PoolInfo = withState<State, Props, Effects, Computed, ParentState, ParentE
         <PanelHeader>
           {' '}
           <span>
-            <Icon icon='cloud' color={'#0085FF'} /> {pool.name_label}
+            <Icon icon='warehouse' color={'#0085FF'} /> {pool.name_label}
           </span>
         </PanelHeader>
         <Tabs

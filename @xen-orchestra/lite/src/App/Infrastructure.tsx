@@ -22,8 +22,10 @@ const LeftPanel = styled.div`
 // `overflow: hidden` forces the console to shrink to the max available width
 // even when the tree component takes more than 20% of the width due to
 // `min-width`
+
+// FIXME: overflow: hidden;
 const MainPanel = styled.div`
-  overflow: hidden;
+  overflow-y: scroll;
   width: 80%;
 `
 

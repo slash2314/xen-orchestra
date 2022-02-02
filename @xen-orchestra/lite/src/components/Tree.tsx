@@ -60,7 +60,7 @@ interface Props {
 }
 
 interface CustomContentProps extends TreeItemContentProps {
-  defaultSelectedNodes?: Array<string>
+  defaultSelectedNode?: string
   to?: string
 }
 
@@ -75,11 +75,11 @@ interface Computed {}
 
 // Inspired by https://mui.com/components/tree-view/#contentcomponent-prop.
 const CustomContent = React.forwardRef(function CustomContent(props: CustomContentProps, ref) {
-  const { classes, className, defaultSelectedNodes, label, expansionIcon, nodeId, to } = props
+  const { classes, className, defaultSelectedNode, label, expansionIcon, nodeId, to } = props
   const { handleExpansion, handleSelection, selected } = useTreeItem(nodeId)
 
   useEffect(() => {
-    if (selected && defaultSelectedNodes?.includes(nodeId)) {
+    if (selected && defaultSelectedNode === nodeId) {
       ref?.current?.scrollIntoView()
     }
   }, [])
@@ -106,18 +106,18 @@ const CustomContent = React.forwardRef(function CustomContent(props: CustomConte
   )
 })
 
-const renderItem = ({ children, id, label, to, tooltip }: ItemType, defaultSelectedNodes?: Array<string>) => {
+const renderItem = ({ children, id, label, to, tooltip }: ItemType, defaultSelectedNode?: string) => {
   return (
     <TreeItem
       ContentComponent={CustomContent}
       // FIXME: ContentProps should only be React.HTMLAttributes<HTMLElement> or undefined, it doesn't support other type.
       // when https://github.com/mui-org/material-ui/issues/28668 is fixed, remove 'as CustomContentProps'.
-      ContentProps={{ defaultSelectedNodes, to } as CustomContentProps}
+      ContentProps={{ defaultSelectedNode, to } as CustomContentProps}
       label={tooltip ? <Tooltip title={tooltip}>{label}</Tooltip> : label}
       key={id}
       nodeId={id}
     >
-      {Array.isArray(children) ? children.map(item => renderItem(item, defaultSelectedNodes)) : null}
+      {Array.isArray(children) ? children.map(item => renderItem(item, defaultSelectedNode)) : null}
     </TreeItem>
   )
 }
@@ -133,7 +133,7 @@ const Tree = withState<State, Props, Effects, Computed, ParentState, ParentEffec
       }
 
       // expandedNodes should contain all nodes up to the defaultSelectedNodes.
-      let expandedNodes: Array<string> = []
+      const expandedNodes: Array<string> = []
       const tempExpandedNodes: Set<string> = new Set()
       const addExpandedNode = (collection: Array<ItemType> | undefined) => {
         if (collection === undefined) {
@@ -141,16 +141,14 @@ const Tree = withState<State, Props, Effects, Computed, ParentState, ParentEffec
         }
 
         for (const node of collection) {
-          const children = node.children
-          if (children === undefined) {
-            if (defaultSelectedNodes.includes(node.id)) {
-              expandedNodes = expandedNodes.concat(Array.from(tempExpandedNodes))
+          if (defaultSelectedNodes.includes(node.id)) {
+            for (const nodeId of tempExpandedNodes.values()) {
+              !expandedNodes.includes(nodeId) && expandedNodes.push(nodeId)
             }
-          } else {
-            tempExpandedNodes.add(node.id)
-            addExpandedNode(node.children)
-            tempExpandedNodes.delete(node.id)
           }
+          tempExpandedNodes.add(node.id)
+          addExpandedNode(node.children)
+          tempExpandedNodes.delete(node.id)
         }
       }
 
@@ -167,20 +165,23 @@ const Tree = withState<State, Props, Effects, Computed, ParentState, ParentEffec
       },
     },
   },
-  ({ effects, state: { expandedNodes, selectedNodes }, collection, defaultSelectedNodes }) => (
-    <TreeView
-      expanded={expandedNodes}
-      defaultExpanded={[collection[0].id]}
-      defaultCollapseIcon={<Icon icon='chevron-up' />}
-      defaultExpandIcon={<Icon icon='chevron-down' />}
-      onNodeSelect={effects.setSelectedNodeIds}
-      onNodeToggle={effects.setExpandedNodeIds}
-      multiSelect
-      selected={selectedNodes}
-    >
-      {collection.map(item => renderItem(item, defaultSelectedNodes))}
-    </TreeView>
-  )
+  ({ effects, state: { expandedNodes, selectedNodes }, collection, defaultSelectedNodes }) => {
+    const defaultSelectedNode = defaultSelectedNodes !== undefined ? defaultSelectedNodes[0] : undefined
+    return (
+      <TreeView
+        expanded={expandedNodes}
+        defaultExpanded={[collection[0].id]}
+        defaultCollapseIcon={<Icon icon='chevron-up' />}
+        defaultExpandIcon={<Icon icon='chevron-down' />}
+        onNodeSelect={effects.setSelectedNodeIds}
+        onNodeToggle={effects.setExpandedNodeIds}
+        multiSelect
+        selected={selectedNodes}
+      >
+        {collection.map(item => renderItem(item, defaultSelectedNode))}
+      </TreeView>
+    )
+  }
 )
 
 export default Tree
